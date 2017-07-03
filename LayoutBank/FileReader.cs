@@ -119,7 +119,17 @@ namespace LayoutBank
                         }
 
                         string insertQuery = CreateQuery(lstCampos, archivo.TablaDestino, fileName, archivo.IDBanco);
-                        ExecuteQuery(insertQuery);
+
+                        if (archivo.IDFormato != 2)
+                        {
+                            ExecuteQuery(insertQuery);
+                        }else
+                        {
+                            if (ValidateExistRow(lstCampos, archivo.TablaDestino))
+                            {
+                                ExecuteQuery(insertQuery);
+                            }
+                        }
                     }
                 }
 
@@ -143,7 +153,46 @@ namespace LayoutBank
 
         }
 
+        private bool ValidateExistRow(List<FieldItem> fields, string table)
+        {
+            bool result = false;
+            StringBuilder where = new StringBuilder();
+            int count = 0;
 
+            foreach(FieldItem item in fields)
+            {
+                count++;
+                where.Append(item.FieldName);
+                where.Append(" = ");
+
+                if (item.ContainsFormat)
+                {
+                    where.Append(string.Format(item.FieldFormat, item.FieldValue));
+                }
+                else
+                {
+                    where.Append("'");
+                    where.Append(item.FieldValue);
+                    where.Append("'");
+                }
+
+                if (count < fields.Count)
+                {
+                    where.Append(" and ");
+                }
+            }
+
+            string query = string.Format("if exists (select * from {0} where {1}) begin  select valid = 'False' end  else  begin  select valid = 'True' end", table, where.ToString());
+            DataTable response = GetTable(query);
+
+            if (response.Rows.Count > 0)
+            {
+                DataRow dr = response.Rows[0];
+                result = bool.Parse(dr["valid"].ToString());
+            }
+
+            return result;
+        }
 
         private string CreateQuery(List<FieldItem> fields, string table, string fileName, int idbanco)
         {

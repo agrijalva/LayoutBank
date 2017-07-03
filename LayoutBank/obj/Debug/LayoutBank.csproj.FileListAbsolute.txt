@@ -4,3 +4,9 @@ C:\Users\Hp\Documents\Training\MyProjects\LayoutBank\LayoutBank\bin\Debug\Layout
 C:\Users\Hp\Documents\Training\MyProjects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.exe
 C:\Users\Hp\Documents\Training\MyProjects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.pdb
 C:\Users\Hp\Documents\Training\MyProjects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.csprojResolveAssemblyReference.cache
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\bin\Debug\LayoutBank.exe.config
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\obj\Debug\LayoutBank.exe
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\obj\Debug\LayoutBank.pdb
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\bin\Debug\LayoutBank.exe
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\bin\Debug\LayoutBank.pdb
+C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\obj\Debug\LayoutBank.csprojResolveAssemblyReference.cache
