@@ -17,7 +17,10 @@ namespace LayoutBank
         public string TablaDestino { get; set; }        
         public int Estatus { get; set; }
         public int IDBanco { get; set; }
-
+        public int FTP { get; set; }
+        public string FTPServer { get; set; }
+        public string FTPUser { get; set; }
+        public string FTPPassword { get; set; }
     }
 
 }

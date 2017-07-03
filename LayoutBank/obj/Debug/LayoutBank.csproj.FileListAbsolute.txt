@@ -10,3 +10,9 @@ C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\obj\Debug\LayoutBank.pdb
 C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\bin\Debug\LayoutBank.exe
 C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\bin\Debug\LayoutBank.pdb
 C:\Users\WINDOWSBIS\Documents\LayoutBank\LayoutBank\obj\Debug\LayoutBank.csprojResolveAssemblyReference.cache
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\bin\Debug\LayoutBank.exe.config
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\bin\Debug\LayoutBank.exe
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\bin\Debug\LayoutBank.pdb
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.csprojResolveAssemblyReference.cache
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.exe
+C:\Users\WINDOWS\Documents\Visual Projects\LayoutBank\LayoutBank\obj\Debug\LayoutBank.pdb

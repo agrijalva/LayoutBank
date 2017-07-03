@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Data;
+using System.Net;
 using System.Linq;
 using System.Text;
 using System.Configuration;
@@ -8,12 +9,12 @@ using System.Data.SqlClient;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-
 namespace LayoutBank
 {
     public class FileReader
     {
         enum Estatus { Procesado = 1, ConErrores, NoProcesado, Vacio };
+        string URLFile;
 
         public void Start()
         {
@@ -28,17 +29,30 @@ namespace LayoutBank
 
                 foreach (DataRow dr in tableFormato.Rows)
                 {
-                    Console.WriteLine(dr["Nombre"].ToString());
+                    Console.WriteLine("Procesando: " + dr["Nombre"].ToString());
                     Formato archivo = SetValues(dr);
-                    ProcessFile(archivo);
+
+                    if (dr["FTP"].ToString() == "True")
+                    {
+                        Console.WriteLine("Verificando archivos en el FTP");
+                        if (this.DescargaLayouts(archivo))
+                        {
+                            ProcessFile(archivo);
+                        }
+                    }
+                    else
+                    {
+                        ProcessFile(archivo);
+                    }
+                    Console.WriteLine("");
                 }
 
                 Console.WriteLine("Termina lectura Layouts: {0} \nSiguiente busqueda: {1} ",
                 DateTime.Now.ToString("dd-MM-yyyy hh:mm"), DateTime.Now.AddHours(hours).AddMinutes(minutes).ToString("dd-MM-yyyy hh:mm"));
             }
-
             catch (Exception ex)
             {
+                
                 Int64 hours = Int32.Parse(ConfigurationManager.AppSettings["nextStartHour"].ToString());
                 Int64 minutes = Int32.Parse(ConfigurationManager.AppSettings["nextStartMinute"].ToString());
                 Console.ForegroundColor = ConsoleColor.Cyan;
@@ -46,22 +60,28 @@ namespace LayoutBank
                 Console.ResetColor();
                 Console.WriteLine("Termina lectura Layouts: {0} \nSiguiente busqueda: {1} ",
                 DateTime.Now.ToString("dd-MM-yyyy hh:mm"), DateTime.Now.AddHours(hours).AddMinutes(minutes).ToString("dd-MM-yyyy hh:mm"));
-            }
 
+                if (ex.HResult == -2147024713) {
+                    File.Delete(URLFile);
+                }
+            }
         }
 
 
         private Formato SetValues(DataRow dr)
         {
             Formato archivo = new Formato();
-            archivo.IDFormato = Int32.Parse(dr["IDFormato"].ToString());
-            archivo.Nombre = dr["Nombre"].ToString();
-            archivo.Descripcion = dr["Descripcion"].ToString();
-            archivo.RutaOrigen = dr["RutaArchivoOrigen"].ToString();
-            archivo.RutaDestino = dr["RutaArchivoDestino"].ToString();
-            archivo.LongitudLinea = Int32.Parse(dr["LongitudLinea"].ToString());
-            archivo.TablaDestino = dr["TablaDestino"].ToString();
-            archivo.IDBanco = Int32.Parse(dr["IDBanco"].ToString());
+            archivo.IDFormato       = Int32.Parse(dr["IDFormato"].ToString());
+            archivo.Nombre          = dr["Nombre"].ToString();
+            archivo.Descripcion     = dr["Descripcion"].ToString();
+            archivo.RutaOrigen      = dr["RutaArchivoOrigen"].ToString();
+            archivo.RutaDestino     = dr["RutaArchivoDestino"].ToString();
+            archivo.LongitudLinea   = Int32.Parse(dr["LongitudLinea"].ToString());
+            archivo.TablaDestino    = dr["TablaDestino"].ToString();
+            archivo.IDBanco         = Int32.Parse(dr["IDBanco"].ToString());
+            archivo.FTPServer       = dr["FTPServer"].ToString();
+            archivo.FTPUser         = dr["FTPUser"].ToString();
+            archivo.FTPPassword     = dr["FTPPassword"].ToString();
             archivo.Estatus = (int)Estatus.NoProcesado;
             return archivo;
         }
@@ -133,6 +153,7 @@ namespace LayoutBank
                     }
                 }
 
+                URLFile = txtPath;
                 if (Directory.Exists(processFolder))
                 {
                     File.Move(txtPath, processFolder + fileName);
@@ -286,6 +307,71 @@ namespace LayoutBank
 
             return dirName;
 
+        }
+
+        private bool DescargaLayouts(Formato Data) {
+            string serverFTP = "ftp://"+ Data.FTPUser +"@"+ Data.FTPServer;
+            // Console.WriteLine(serverFTP);
+
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(serverFTP);
+            request.Method = WebRequestMethods.Ftp.ListDirectory;
+            //request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
+            request.Credentials = new NetworkCredential(Data.FTPUser, Data.FTPPassword);
+
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+            StreamReader streamReader = new StreamReader(response.GetResponseStream());
+            List<string> directories = new List<string>();
+
+            string line = streamReader.ReadLine();
+            while (!string.IsNullOrEmpty(line))
+            {
+                directories.Add(line);
+                line = streamReader.ReadLine();
+            }
+
+            streamReader.Close();
+
+
+
+            foreach (string s in directories)
+            {
+                // Console.WriteLine(s);
+                WriteLog(s);
+            }
+
+
+
+            using (WebClient ftpClient = new WebClient())
+            {
+                ftpClient.Credentials = new System.Net.NetworkCredential(Data.FTPUser, Data.FTPPassword);
+
+                for (int i = 0; i <= directories.Count - 1; i++)
+                {
+                    if (directories[i].Contains("."))
+                    {
+                        if (directories.Count - 1 == i)
+                        {
+                            string path = serverFTP + "/" + directories[i].ToString();
+                            string trnsfrpth = Data.RutaOrigen + @"\" + directories[i].ToString();
+                            Console.WriteLine("Layout reciente " + directories[i].ToString() + ", descargado correctamente.");
+                            ftpClient.DownloadFile(path, trnsfrpth);
+
+                            // return true;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        static void WriteLog(string content)
+        {
+            string path = Directory.GetCurrentDirectory() + "\\log.txt";
+            using (StreamWriter file = new StreamWriter(path, true))
+            {
+                file.WriteLine(content);
+            }
         }
 
     }
