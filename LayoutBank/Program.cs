@@ -14,7 +14,7 @@ namespace LayoutBank
         static void Main(string[] args)
         {
 
-
+            
 
             Int64 hours = Int32.Parse(ConfigurationManager.AppSettings["nextStartHour"].ToString());
             Int64 minutes = Int32.Parse(ConfigurationManager.AppSettings["nextStartMinute"].ToString());

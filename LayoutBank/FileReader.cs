@@ -140,27 +140,42 @@ namespace LayoutBank
 
                         string insertQuery = CreateQuery(lstCampos, archivo.TablaDestino, fileName, archivo.IDBanco);
 
-                        if (archivo.IDFormato != 2)
-                        {
-                            ExecuteQuery(insertQuery);
-                        }else
-                        {
-                            if (ValidateExistRow(lstCampos, archivo.TablaDestino))
-                            {
-                                ExecuteQuery(insertQuery);
-                            }
+                        switch (archivo.IDFormato) {
+                            case 1:
+                                if (ValidateExistRowBancomer(lstCampos, archivo.TablaDestino))
+                                {
+                                    ExecuteQuery(insertQuery);
+                                }
+                                break;
+                            case 2:
+                                if (ValidateExistRowSantander(lstCampos, archivo.TablaDestino))
+                                {
+                                    ExecuteQuery(insertQuery);
+                                }
+                                break;
                         }
+                       /// if (archivo.IDFormato != 2)
+                       // {
+                         //   ExecuteQuery(insertQuery);
+                        //}else
+                        //{
+                            //if (ValidateExistRowBancomer(lstCampos, archivo.TablaDestino))
+                            //{
+                            //    ExecuteQuery(insertQuery);
+                            //}
+                        //}
                     }
                 }
 
                 URLFile = txtPath;
+                string procesDate = string.Format("{0:ddMMyyyyhhmm}_", DateTime.Now);
                 if (Directory.Exists(processFolder))
                 {
-                    File.Move(txtPath, processFolder + fileName);
+                    File.Move(txtPath,   processFolder  + fileName);
                 }
                 else
                 {
-                    File.Move(txtPath, archivo.RutaDestino + fileName);
+                    File.Move(txtPath, archivo.RutaDestino  + fileName);
                 }
 
                 string insertLog =
@@ -169,12 +184,12 @@ namespace LayoutBank
 
                 ExecuteQuery(insertLog);
 
-
+                Console.WriteLine("Finaliza Proceso");
             }
 
         }
 
-        private bool ValidateExistRow(List<FieldItem> fields, string table)
+        private bool ValidateExistRowBancomer(List<FieldItem> fields, string table)
         {
             bool result = false;
             StringBuilder where = new StringBuilder();
@@ -185,7 +200,7 @@ namespace LayoutBank
                 count++;
                 where.Append(item.FieldName);
                 where.Append(" = ");
-
+                
                 if (item.ContainsFormat)
                 {
                     where.Append(string.Format(item.FieldFormat, item.FieldValue));
@@ -204,6 +219,60 @@ namespace LayoutBank
             }
 
             string query = string.Format("if exists (select * from {0} where {1}) begin  select valid = 'False' end  else  begin  select valid = 'True' end", table, where.ToString());
+            DataTable response = GetTable(query);
+
+            if (response.Rows.Count > 0)
+            {
+                DataRow dr = response.Rows[0];
+                result = bool.Parse(dr["valid"].ToString());
+            }
+
+            return result;
+        }
+
+        private bool ValidateExistRowSantander(List<FieldItem> fields, string table)
+        {
+            bool result = false;
+            StringBuilder where = new StringBuilder();
+            int count = 0;
+
+            foreach (FieldItem item in fields)
+            {
+                count++;
+                if (item.FieldName == "importe")
+                {
+                    // Console.WriteLine("El importe ya no se validara");
+                }
+                else if(item.FieldName == "saldo")
+                {
+                    // Console.WriteLine("El saldo ya no se validara");
+                }
+                else
+                {
+                    
+                    where.Append(item.FieldName);
+                    where.Append(" = ");
+
+                    if (item.ContainsFormat)
+                    {
+                        where.Append(string.Format(item.FieldFormat, item.FieldValue));
+                    }
+                    else
+                    {
+                        where.Append("'");
+                        where.Append(item.FieldValue);
+                        where.Append("'");
+                    }
+
+                    if (count < fields.Count)
+                    {
+                        where.Append(" and ");
+                    }
+                }
+            }
+
+            string query = string.Format("if exists (select * from {0} where {1}) begin  select valid = 'False' end  else  begin  select valid = 'True' end", table, where.ToString());
+            
             DataTable response = GetTable(query);
 
             if (response.Rows.Count > 0)
