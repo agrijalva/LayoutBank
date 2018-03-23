@@ -15,17 +15,28 @@ namespace LayoutBank
     {
         enum Estatus { Procesado = 1, ConErrores, NoProcesado, Vacio };
         string URLFile;
+        string Sdt;
 
         public void Start()
         {
+
             try
             {
+                // Levantando servicios de EmailReferencias
+                // Levantando servicios de EmailReferencias
+                //command = ConfigurationManager.AppSettings["cmdEmailReferencias"].ToString();
+                //System.Diagnostics.Process.Start("CMD.exe", command);
+                //gta_AllCustomers();
+                // /-Levantando servicios de EmailReferencias
+
+                
+
                 Int64 hours = Int32.Parse(ConfigurationManager.AppSettings["nextStartHour"].ToString());
                 Int64 minutes = Int32.Parse(ConfigurationManager.AppSettings["nextStartMinute"].ToString());
 
                 Console.WriteLine("Comienza lectura Layouts {0} ", DateTime.Now.ToString("dd-MM-yyyy hh:mm"));
 
-                DataTable tableFormato = GetTable("select * from Formato where estatus = 1 ");
+                DataTable tableFormato = GetTable("select * from Formato where estatus = 1");
 
                 foreach (DataRow dr in tableFormato.Rows)
                 {
@@ -37,12 +48,12 @@ namespace LayoutBank
                         Console.WriteLine("Verificando archivos en el FTP");
                         if (this.DescargaLayouts(archivo))
                         {
-                            ProcessFile(archivo);
+                            ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
                         }
                     }
                     else
                     {
-                        ProcessFile(archivo);
+                        ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
                     }
                     Console.WriteLine("");
                 }
@@ -52,7 +63,7 @@ namespace LayoutBank
             }
             catch (Exception ex)
             {
-                
+
                 Int64 hours = Int32.Parse(ConfigurationManager.AppSettings["nextStartHour"].ToString());
                 Int64 minutes = Int32.Parse(ConfigurationManager.AppSettings["nextStartMinute"].ToString());
                 Console.ForegroundColor = ConsoleColor.Cyan;
@@ -61,7 +72,8 @@ namespace LayoutBank
                 Console.WriteLine("Termina lectura Layouts: {0} \nSiguiente busqueda: {1} ",
                 DateTime.Now.ToString("dd-MM-yyyy hh:mm"), DateTime.Now.AddHours(hours).AddMinutes(minutes).ToString("dd-MM-yyyy hh:mm"));
 
-                if (ex.HResult == -2147024713) {
+                if (ex.HResult == -2147024713)
+                {
                     File.Delete(URLFile);
                 }
             }
@@ -86,7 +98,7 @@ namespace LayoutBank
             return archivo;
         }
 
-        private void ProcessFile(Formato archivo)
+        private void ProcessFile(Formato archivo, string banco, string lblBanco)
         {
             string processFolder = GetFolderPath(archivo.RutaDestino);
             string[] txtFiles = GetTextFiles(archivo.RutaOrigen);
@@ -97,6 +109,9 @@ namespace LayoutBank
 
             foreach (string txtPath in txtFiles)
             {
+                string deposito = Deposito(banco);
+
+                Console.WriteLine(txtPath);
                 string[] txtLines = ReadAllLine(txtPath);
                 string fileName = Path.GetFileName(txtPath);
                 string noCuenta = string.Empty;
@@ -139,6 +154,7 @@ namespace LayoutBank
                         }
 
                         string insertQuery = CreateQuery(lstCampos, archivo.TablaDestino, fileName, archivo.IDBanco);
+                        // Console.WriteLine(insertQuery);
 
                         switch (archivo.IDFormato) {
                             case 1:
@@ -153,17 +169,10 @@ namespace LayoutBank
                                     ExecuteQuery(insertQuery);
                                 }
                                 break;
+                            case 3:
+                                ExecuteQuery(insertQuery);
+                                break;
                         }
-                       /// if (archivo.IDFormato != 2)
-                       // {
-                         //   ExecuteQuery(insertQuery);
-                        //}else
-                        //{
-                            //if (ValidateExistRowBancomer(lstCampos, archivo.TablaDestino))
-                            //{
-                            //    ExecuteQuery(insertQuery);
-                            //}
-                        //}
                     }
                 }
 
@@ -171,11 +180,21 @@ namespace LayoutBank
                 string procesDate = string.Format("{0:ddMMyyyyhhmm}_", DateTime.Now);
                 if (Directory.Exists(processFolder))
                 {
-                    File.Move(txtPath,   processFolder  + fileName);
+                    if( !File.Exists(processFolder + fileName))
+                    {
+                        File.Move(txtPath, processFolder + fileName);
+                        WriteLog(processFolder + fileName);
+                    }
+                    else
+                    {
+                        File.Delete(txtPath);
+                    }
                 }
                 else
                 {
                     File.Move(txtPath, archivo.RutaDestino  + fileName);
+                    WriteLog(processFolder + fileName);
+                    // Console.WriteLine("Ejemplo " + processFolder + fileName);
                 }
 
                 string insertLog =
@@ -184,6 +203,7 @@ namespace LayoutBank
 
                 ExecuteQuery(insertLog);
 
+                sendDepositosEmail(banco, deposito, lblBanco);
                 Console.WriteLine("Finaliza Proceso");
             }
 
@@ -335,6 +355,37 @@ namespace LayoutBank
 
             return dt;
         }
+    
+        private string Deposito(string banco)
+        {
+            string deposito = "";
+            DataTable MaxDeposito = GetLastDeposito("SELECT MAX(idBmer) as idDeposito FROM [Tesoreria].[dbo].[controlDepositosView] WHERE IDBanco = " + banco);
+            foreach (DataRow dr in MaxDeposito.Rows)
+            {
+                deposito = dr["idDeposito"].ToString();
+                //Console.Write();
+                //return dr["idDeposito"].ToString();
+            }
+
+            return deposito;
+        }
+        
+
+        private DataTable GetLastDeposito(string query)
+        {
+            SqlConnection cnx = new SqlConnection();
+            SqlCommand cmd = new SqlCommand();
+            SqlDataAdapter da = new SqlDataAdapter();
+            DataTable dt = new DataTable();
+
+            cnx.ConnectionString = ConfigurationManager.ConnectionStrings["cnxReferencias"].ToString();
+            cmd.Connection = cnx;
+            cmd.CommandText = query;
+            da.SelectCommand = cmd;
+            da.Fill(dt);
+
+            return dt;
+        }
 
 
 
@@ -360,6 +411,7 @@ namespace LayoutBank
 
         private string[] ReadAllLine(string path)
         {
+            
             return File.ReadAllLines(path);
         }
 
@@ -380,17 +432,15 @@ namespace LayoutBank
 
         private bool DescargaLayouts(Formato Data) {
             string serverFTP = "ftp://"+ Data.FTPUser +"@"+ Data.FTPServer;
-            // Console.WriteLine(serverFTP);
 
             FtpWebRequest request = (FtpWebRequest)WebRequest.Create(serverFTP);
             request.Method = WebRequestMethods.Ftp.ListDirectory;
-            //request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
             request.Credentials = new NetworkCredential(Data.FTPUser, Data.FTPPassword);
 
             FtpWebResponse response = (FtpWebResponse)request.GetResponse();
             StreamReader streamReader = new StreamReader(response.GetResponseStream());
             List<string> directories = new List<string>();
-
+            
             string line = streamReader.ReadLine();
             while (!string.IsNullOrEmpty(line))
             {
@@ -400,37 +450,44 @@ namespace LayoutBank
 
             streamReader.Close();
 
-
-
-            foreach (string s in directories)
-            {
-                // Console.WriteLine(s);
-                WriteLog(s);
-            }
-
-
+            // foreach (string s in directories)
+            // {
+                // WriteLog(s);
+                // Console.WriteLine("Ejemplo " + processFolder + fileName);
+            // }
 
             using (WebClient ftpClient = new WebClient())
             {
                 ftpClient.Credentials = new System.Net.NetworkCredential(Data.FTPUser, Data.FTPPassword);
-
+                // Obtenemos el ultimo layout ingresado
                 for (int i = 0; i <= directories.Count - 1; i++)
                 {
                     if (directories[i].Contains("."))
                     {
                         if (directories.Count - 1 == i)
                         {
-                            string path = serverFTP + "/" + directories[i].ToString();
-                            string trnsfrpth = Data.RutaOrigen + @"\" + directories[i].ToString();
-                            Console.WriteLine("Layout reciente " + directories[i].ToString() + ", descargado correctamente.");
-                            ftpClient.DownloadFile(path, trnsfrpth);
-
-                            // return true;
+                            Sdt = directories[i].ToString().Substring(0,23);
                         }
                     }
                 }
-            }
+                // Se descarga los layouts correspondientes al lote
+                for (int i = 0; i <= directories.Count - 1; i++)
+                {
+                    if (directories[i].Contains("."))
+                    {
+                        int of = directories[i].ToString().IndexOf(Sdt);
+                        if( of == 0)
+                        {
+                            string path = serverFTP + "/" + directories[i].ToString();
+                            string trnsfrpth = Data.RutaOrigen + @"\" + directories[i].ToString();
 
+                            ftpClient.DownloadFile(path, trnsfrpth);
+                            Console.WriteLine(directories[i].ToString() + " Descargado.");
+                        }
+
+                    }
+                }
+            }
             return true;
         }
 
@@ -441,6 +498,23 @@ namespace LayoutBank
             {
                 file.WriteLine(content);
             }
+        }
+
+        public void sendDepositosEmail(string banco, string deposito, string lblBanco)
+        {
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(ConfigurationManager.AppSettings["serviceEmailReferencias"].ToString() + "?idBanco=" + banco + "&idDeposito=" + deposito + "&banco=" + lblBanco);
+            httpWebRequest.ContentType = "application/json";
+            httpWebRequest.Accept = "*/*";
+            httpWebRequest.Method = "GET";
+            httpWebRequest.Headers.Add("Authorization", "Basic reallylongstring");
+
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                Console.Write(streamReader.ReadToEnd() );
+            }
+            Console.WriteLine();
         }
 
     }
