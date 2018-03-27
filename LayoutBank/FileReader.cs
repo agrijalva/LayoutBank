@@ -4,6 +4,7 @@ using System.Data;
 using System.Net;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Configuration;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
@@ -16,10 +17,10 @@ namespace LayoutBank
         enum Estatus { Procesado = 1, ConErrores, NoProcesado, Vacio };
         string URLFile;
         string Sdt;
+        public Formato archivo;
 
         public void Start()
         {
-
             try
             {
                 // Levantando servicios de EmailReferencias
@@ -29,7 +30,8 @@ namespace LayoutBank
                 //gta_AllCustomers();
                 // /-Levantando servicios de EmailReferencias
 
-                
+                //Banamex MiBanamex = new Banamex();
+                //MiBanamex.ejemplo();
 
                 Int64 hours = Int32.Parse(ConfigurationManager.AppSettings["nextStartHour"].ToString());
                 Int64 minutes = Int32.Parse(ConfigurationManager.AppSettings["nextStartMinute"].ToString());
@@ -41,19 +43,30 @@ namespace LayoutBank
                 foreach (DataRow dr in tableFormato.Rows)
                 {
                     Console.WriteLine("Procesando: " + dr["Nombre"].ToString());
-                    Formato archivo = SetValues(dr);
+                    archivo = SetValues(dr);
+                    Console.WriteLine("IDBanco: " + dr["IDBanco"]);
 
-                    if (dr["FTP"].ToString() == "True")
+                    int IDBanco = Int32.Parse(dr["IDBanco"].ToString());
+                    if (IDBanco == 2)
                     {
-                        Console.WriteLine("Verificando archivos en el FTP");
-                        if (this.DescargaLayouts(archivo))
-                        {
-                            ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
-                        }
+                        // Console.WriteLine("Que pedo cachorro");
+                        Banamex miBanamex = new Banamex();
+                        miBanamex.Procesar(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
                     }
                     else
                     {
-                        ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
+                        if (dr["FTP"].ToString() == "True")
+                        {
+                            Console.WriteLine("Verificando archivos en el FTP");
+                            if (this.DescargaLayouts(archivo))
+                            {
+                                ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
+                            }
+                        }
+                        else
+                        {
+                            ProcessFile(archivo, dr["IDBanco"].ToString(), dr["Nombre"].ToString());
+                        }
                     }
                     Console.WriteLine("");
                 }
@@ -82,7 +95,7 @@ namespace LayoutBank
 
         private Formato SetValues(DataRow dr)
         {
-            Formato archivo = new Formato();
+            archivo = new Formato();
             archivo.IDFormato       = Int32.Parse(dr["IDFormato"].ToString());
             archivo.Nombre          = dr["Nombre"].ToString();
             archivo.Descripcion     = dr["Descripcion"].ToString();
@@ -119,6 +132,8 @@ namespace LayoutBank
 
                 foreach (string line in txtLines)
                 {
+                    Console.WriteLine( line );
+
                     List<FieldItem> lstCampos = new List<FieldItem>();
 
                     if (archivo.IDFormato == 1 && numeroLinea == 0)
@@ -172,6 +187,10 @@ namespace LayoutBank
                             case 3:
                                 ExecuteQuery(insertQuery);
                                 break;
+                            case 4:
+                                //Console.WriteLine("Entro en Banamex");
+                                // ExecuteQuery(insertQuery);
+                                break;
                         }
                     }
                 }
@@ -208,6 +227,12 @@ namespace LayoutBank
             }
 
         }
+
+        //private void ProcessBanamex(Formato archivo, string banco, string lblBanco)
+        //{
+            
+
+        //}
 
         private bool ValidateExistRowBancomer(List<FieldItem> fields, string table)
         {
@@ -340,7 +365,7 @@ namespace LayoutBank
 
 
 
-        private DataTable GetTable(string query)
+        public DataTable GetTable(string query)
         {
             SqlConnection cnx = new SqlConnection();
             SqlCommand cmd = new SqlCommand();
@@ -356,7 +381,7 @@ namespace LayoutBank
             return dt;
         }
     
-        private string Deposito(string banco)
+        public string Deposito(string banco)
         {
             string deposito = "";
             DataTable MaxDeposito = GetLastDeposito("SELECT MAX(idBmer) as idDeposito FROM [Tesoreria].[dbo].[controlDepositosView] WHERE IDBanco = " + banco);
@@ -403,20 +428,19 @@ namespace LayoutBank
             cnx.Close();
         }
 
-        private string[] GetTextFiles(string path)
+        public string[] GetTextFiles(string path)
         {
             return Directory.GetFiles(path);
         }
 
 
-        private string[] ReadAllLine(string path)
+        public string[] ReadAllLine(string path)
         {
-            
             return File.ReadAllLines(path);
         }
 
 
-        private string GetFolderPath(string path)
+        public string GetFolderPath(string path)
         {
 
             string monthName = DateTime.Now.ToString("MMM", System.Globalization.CultureInfo.CreateSpecificCulture("es")).Substring(0, 3).ToUpper();

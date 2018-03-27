@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Banamex.cs" />
     <Compile Include="FieldItem.cs" />
     <Compile Include="FileReader.cs" />
     <Compile Include="Formato.cs" />

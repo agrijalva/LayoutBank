@@ -67,9 +67,6 @@ namespace LayoutBank
                 fr.Start();                
                 AutoResetEvent autoEvent = (AutoResetEvent)stateInfo;                                
             }
-
         }
-
-
     }
 }

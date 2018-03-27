@@ -95,3 +95,11 @@ C:\Bancos\Procesados\Santander\2018MAR\80021464020201803211700120.txt
 C:\Bancos\Procesados\Santander\2018MAR\80021464020201803211700121.txt
 C:\Bancos\Procesados\Santander\2018MAR\80021464020201803211700122.txt
 C:\Bancos\Procesados\Santander\2018MAR\80021464020201803211700123.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX0.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX1.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX2.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX3.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX4.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX5.txt
+C:\Bancos\Procesados\Banamex2018MAR\MOVIMIENTOSBANAMEX6.txt
