@@ -45,6 +45,9 @@ namespace LayoutBank
                 string[] aperturaBalance;
                 string[] cierreBalance;
                 string[] cierreBalanceDisponible;
+                string[] registro;
+                string[] infoReferencia = new string[3];
+                string[] detallesComplemenatrios = new string[2];
 
                 Console.WriteLine(txtPath);
                 // Se recorre todo el Layout para obtener los datos generales como las aperturas y los cierres del Balance
@@ -99,12 +102,12 @@ namespace LayoutBank
                     {
                         switch (mainNode)
                         {
-                            case "61": //  - Inicio de Un Registro                                
-                                // Console.WriteLine("Aqui se esta el inicio de cada registro");
-                                this.StatementLine(line);
+                            case "61": //  - Inicio de Un Registro
+                                registro = this.StatementLine(line);                                
+
                                 break;
                             case "86": //  - Informacion complementaria del registro
-
+                                infoReferencia = this.Complemento(line);
                                 break;
                         }
                     }
@@ -116,7 +119,7 @@ namespace LayoutBank
                             switch (secondNode)
                             {
                                 case "CTC": // -  Descripcion CTC
-
+                                    detallesComplemenatrios = this.detalles(line);
                                     break;
                             }
                         }
@@ -124,84 +127,13 @@ namespace LayoutBank
                         {
                             if (line != "-") // - Complemento del nodo 86
                             {
-
+                                infoReferencia[2] += line;
+                                Console.WriteLine(infoReferencia[2]);
                             }
                         }
                     }
                 }
-                // -----------------------------
-                //foreach (string line in txtLines)
-                //{
-                //    var mainNode = Regex.Match(line, @":(.+?):").Groups[1].Value;
-                //    if (mainNode != "")
-                //    {
-                //        switch (mainNode)
-                //        {
-                //            case "20": //  - Inicio del Bloque
-                //                // Se ha determinado el inicio de un Layout
-                //                break;
-                //            case "25": //  - Numero de Cuenta
-                //                NumeroCuenta = this.GetNoCuenta(line);
-                //                break;
-                //            case "28": //  - Paginado
-                //                Pagina = this.GetPagina(line);
-                //                break;
-                //            case "60F": // - Apertura de Balance
-                //                aperturaBalance = this.GetDatosBalace(line);
-                //                foreach (string item in aperturaBalance)
-                //                    Console.WriteLine(item);
-
-                //                break;
-                //            case "61": //  - Inicio de Un Registro                                
-                //                contRegisters++; // Incremento unicamente al final de todo 
-                //                break;
-                //            case "86": //  - Informacion complementaria del registro
-
-                //                break;
-                //            case "62F": // - Cierre de Balance
-                //                Console.WriteLine("Cierre de Balance");
-                //                cierreBalance = this.GetDatosBalace(line);
-                //                foreach (string item in cierreBalance)
-                //                    Console.WriteLine(item);
-
-                //                break;
-                //            case "64": //  - Cierre de Balance Disponible
-                //                Console.WriteLine("Cierre de Balance Disponible");
-                //                cierreBalanceDisponible = this.GetDatosBalace(line);
-                //                foreach (string item in cierreBalanceDisponible)
-                //                    Console.WriteLine(item);
-
-                //                break;
-                //        }
-                //    }
-                //    else
-                //    {
-                //        var secondNode = Regex.Match(line, @"/(.+?)/").Groups[1].Value;
-                //        if (secondNode != "")
-                //        {
-                //            switch (secondNode)
-                //            {
-                //                case "CTC": // -  Descripcion CTC
-
-                //                    break;
-                //            }
-                //        }
-                //        else
-                //        {
-                //            if (line != "-") // - Complemento del nodo 86
-                //            {
-
-                //            }
-                //            else            // - Final del Documento
-                //            {
-
-                //            }
-                //        }
-                //    }
-                //    Console.WriteLine("");
-                //}
-                // -----------------------------
-
+                
                 Console.WriteLine("");
                 Console.WriteLine("Finaliza Proceso");
             }
@@ -248,7 +180,7 @@ namespace LayoutBank
 
         private string[] StatementLine( string line )
         {
-            string[] Statement = new string[14];
+            string[] Statement = new string[9];
 
             var nodo = Regex.Match(line, @":(.+?):").Groups[1].Value;
             int longitud = nodo.Length;
@@ -261,9 +193,11 @@ namespace LayoutBank
             // Se obtiene el campo de Fecha de Transacción
             string fecha = aux.Substring(0, 6);
             fecha = "20" + fecha.Substring(0, 2) + "-" + fecha.Substring(2, 2) + "-" + fecha.Substring(4, 2);
+            Statement[0] = fecha;
 
             // Se obtiene el campo de Fecha de Entrada
             string fechaentrada = aux.Substring(6, 4);
+            Statement[1] = fechaentrada;
 
             // Se obtiene el campo de Credito o Debito
             string credito = aux.Substring(10, 2);
@@ -277,30 +211,73 @@ namespace LayoutBank
                 credito = aux.Substring(10, 1);
                 charPlus = 10 + 1;
             }
+            Statement[2] = credito;
 
             // Se obtiene el campo de Moneda (Contiene solo el tercer caracter) USD => D, MXN => N
             string moneda = aux.Substring(charPlus, 1);
+            Statement[3] = moneda;
 
             // Se obtiene el campo del Monto
             string cherPrev = credito + moneda;
             string monto = Regex.Match(line, @""+ cherPrev + "(.+?)N").Groups[1].Value;
+            Statement[4] = monto;
 
             // Se obtiene el campo del Metodo de Entrada
             charPlus = charPlus + monto.Length + 1;
             string metodoEntrada = aux.Substring(charPlus, 1);
+            Statement[5] = metodoEntrada;
 
-            // Se obtiene el campo del Metodo de Entrada
+            // Se obtiene el campo de la Razon de Entrada
             string razon = aux.Substring((charPlus + 1), 3);
+            Statement[6] = razon;
 
-            // Se obtiene el campo del Metodo de Entrada
+            // Se obtiene el campo de Referencia
             string lotReferencia = aux.Substring((charPlus + 4),  (aux.Length - (charPlus + 4)));
-            string[] auxRef = lotReferencia.Split('/');
-            foreach (string seccion in auxRef)
-                Console.WriteLine(seccion);
-            // Console.WriteLine(lotReferencia);
-
+            string[] auxRef = lotReferencia.Split(new string[] {"//"}, StringSplitOptions.None);
+            Statement[7] = auxRef[0];
+            Statement[8] = auxRef[1];
 
             return Statement;
+        }
+
+        private string[] detalles(string line)
+        {
+
+            var nodo = Regex.Match(line, @"/(.+?)/").Groups[1].Value;
+            int longitud = nodo.Length;
+
+            string[] apertura = new string[4];
+            // Se Obtiene la linea sin el nodo 
+            int len = longitud + 2;
+            string aux = line.Substring(len, (line.Length - len));
+
+            // Se obtienen los datos
+            string[] auxDetalles = aux.Split('/');
+            
+            return auxDetalles;
+        }
+
+        private string[] Complemento(string line) {
+            string[] Comple = new string[3];
+
+            var nodo = Regex.Match(line, @":(.+?):").Groups[1].Value;
+            int longitud = nodo.Length;
+
+            string[] apertura = new string[4];
+            // Se Obtiene la linea sin el nodo 
+            int len = longitud + 2;
+            string aux = line.Substring(len, (line.Length - len));
+
+            // Se obtiene el identificador tipo del producto
+            Comple[0] = aux.Substring(0, 4);
+
+            // Se obtiene el tipo del producto
+            Comple[1] = aux.Substring(4, 2);
+
+            // Se obtiene la descripción
+            Comple[2] = aux.Substring(6, (aux.Length - 6));
+
+            return Comple;
         }
 
         //private void MT940Respaldo(Formato archivo, string banco, string lblBanco)
