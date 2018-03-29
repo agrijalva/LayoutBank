@@ -25,9 +25,74 @@ namespace LayoutBank
 
             if (tablaDetalle.Rows.Count <= 0) return;
 
-            MT940(archivo, banco, lblBanco, txtFiles);
+            this.analizaLayout(txtFiles);
+            this.MT940(archivo, banco, lblBanco, txtFiles);
         }
 
+        private void analizaLayout(string[] txtFiles)
+        {
+            foreach (string txtPath in txtFiles)
+            {
+                int pages = 0;
+                string[] txtLines = FR.ReadAllLine(txtPath);
+
+                foreach (string line in txtLines)
+                {
+                    var mainNode = Regex.Match(line, @":(.+?):").Groups[1].Value;
+                    if (mainNode != "")
+                    {
+                        if(mainNode == "20")
+                            pages++;
+                    }
+                }
+
+                int[] paginas = new int[pages];
+                
+
+                int lineasPorPagina = 0;
+                int auxPages = 0;
+                for ( int i = 0; i < txtLines.Length; i++)
+                {
+                    lineasPorPagina++;
+                    if (txtLines[i] == "-")
+                    {
+                        paginas[auxPages] = lineasPorPagina;
+                        auxPages++;
+                        lineasPorPagina = 0;
+                    }
+                }
+
+                int maxRows = 0;
+                foreach (int lineas in paginas)
+                {
+                    if (lineas > maxRows)
+                        maxRows = lineas;
+                }
+
+                string[,] NuevoLayout = new string[pages, maxRows];
+                int contadorPagAux = 0;
+                for ( int i = 0; i < txtLines.Length; i++)
+                {
+                    Console.WriteLine("Estoy en la pagina: " + i + " - " + contadorPagAux);
+                    if(paginas[contadorPagAux] == (i + 1))
+                    {
+                        contadorPagAux++;
+                    }
+                }
+
+                for (int i = 0; i < pages; i++)
+                {
+                    for (int x = 0; x < maxRows; x++)
+                    {
+                        Console.WriteLine("Hola " + NuevoLayout[i,x]);
+                    }
+                }
+
+                Console.WriteLine(pages);
+
+
+            }
+        }
 
         private void MT940(Formato archivo, string banco, string lblBanco, string[] txtFiles)
         {   
@@ -128,7 +193,7 @@ namespace LayoutBank
                             if (line != "-") // - Complemento del nodo 86
                             {
                                 infoReferencia[2] += line;
-                                Console.WriteLine(infoReferencia[2]);
+                                // Console.WriteLine(infoReferencia[2]);
                             }
                         }
                     }
